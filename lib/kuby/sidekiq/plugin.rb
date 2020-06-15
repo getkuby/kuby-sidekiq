@@ -9,6 +9,10 @@ module Kuby
 
       value_fields :replicas
 
+      def url
+        @url ||= "redis://#{redis.metadata.name}:6379/0"
+      end
+
       def after_initialize
         @replicas = 1
       end
@@ -27,6 +31,22 @@ module Kuby
 
           rails_web.env_froms.each do |env_from|
             @env_froms[SecureRandom.hex] = env_from.dup
+          end
+        end
+      end
+
+      def before_deploy(manifest)
+        context = self
+
+        deployment do
+          spec do
+            template do
+              spec do
+                container(:worker) do
+                  image context.definition.docker.metadata.image_with_tag
+                end
+              end
+            end
           end
         end
       end
@@ -103,7 +123,6 @@ module Kuby
                 container(:worker) do
                   name "#{context.selector_app}-sidekiq-#{ROLE}"
                   image_pull_policy 'IfNotPresent'
-                  image context.definition.docker.metadata.image_with_tag
                   command %w(bundle exec sidekiq)
                 end
 
@@ -134,7 +153,7 @@ module Kuby
           end
 
           spec do
-            version '4.0-v1'
+            version '5.0.3-v1'
             storage_type 'Durable'
 
             storage do
@@ -143,7 +162,7 @@ module Kuby
 
               resources do
                 requests do
-                  add :storage, '50Mi'
+                  add :storage, '1Gi'
                 end
               end
             end
