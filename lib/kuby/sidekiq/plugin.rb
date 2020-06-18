@@ -18,32 +18,22 @@ module Kuby
       end
 
       def after_configuration
-        rails_app = definition.kubernetes.plugin(:rails_app)
         return unless rails_app
 
-        rails_web = rails_app.deployment.spec.template.spec.container(:web)
-
-        # This is some seriously awful hackery. It would be really nice if
-        # KubeDSL provided a way to merge objects together at an arbitrary
-        # nesting level.
-        deployment.spec.template.spec.container(:worker) do
-          @env_froms ||= {}
-
-          rails_web.env_froms.each do |env_from|
-            @env_froms[SecureRandom.hex] = env_from.dup
-          end
-        end
+        deployment.spec.template.spec.container(:worker).merge!(
+          rails_app.deployment.spec.template.spec.container(:web), fields: [:env_from]
+        )
       end
 
       def before_deploy(manifest)
-        context = self
+        image_with_tag = "#{docker.metadata.image_url}:#{kubernetes.tag}"
 
         deployment do
           spec do
             template do
               spec do
                 container(:worker) do
-                  image context.definition.docker.metadata.image_with_tag
+                  image image_with_tag
                 end
               end
             end
@@ -181,12 +171,20 @@ module Kuby
         definition.kubernetes
       end
 
+      def docker
+        definition.docker
+      end
+
       def selector_app
         kubernetes.selector_app
       end
 
       def namespace
         kubernetes.namespace
+      end
+
+      def rails_app
+        kubernetes.plugin(:rails_app)
       end
     end
   end

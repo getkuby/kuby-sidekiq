@@ -12,7 +12,8 @@ Gem::Specification.new do |s|
 
   s.platform = Gem::Platform::RUBY
 
-  s.add_dependency 'kuby-kube-db', '~> 0.2'
+  s.add_dependency 'kuby-kube-db', '~> 0.4'
+  s.add_dependency 'kube-dsl', '~> 0.3'
 
   s.require_path = 'lib'
   s.files = Dir['{lib,spec}/**/*', 'Gemfile', 'LICENSE', 'CHANGELOG.md', 'README.md', 'Rakefile', 'kuby-sidekiq.gemspec']
