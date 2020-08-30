@@ -2,7 +2,7 @@ require 'securerandom'
 
 module Kuby
   module Sidekiq
-    class Plugin < ::Kuby::Kubernetes::Plugin
+    class Plugin < ::Kuby::Plugin
       extend ::KubeDSL::ValueFields
 
       ROLE = 'worker'.freeze
@@ -168,11 +168,11 @@ module Kuby
       end
 
       def kubernetes
-        definition.kubernetes
+        environment.kubernetes
       end
 
       def docker
-        definition.docker
+        environment.docker
       end
 
       def selector_app
