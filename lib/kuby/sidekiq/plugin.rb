@@ -20,7 +20,9 @@ module Kuby
 
       def after_configuration
         environment.kubernetes.add_plugin(:redis) do
-          instance :sidekiq
+          instance :sidekiq do
+            custom_config (custom_config || []).concat(['maxmemory-policy noeviction'])
+          end
         end
 
         return unless rails_app
