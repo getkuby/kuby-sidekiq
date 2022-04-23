@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'kuby/redis'
 
 module Kuby
   module Sidekiq
@@ -7,17 +8,21 @@ module Kuby
 
       ROLE = 'worker'.freeze
 
-      value_fields :replicas
+      value_field :replicas, default: 1
 
       def url
-        @url ||= "redis://#{redis.metadata.name}:6379/0"
+        redis_instance.url
       end
 
-      def after_initialize
-        @replicas = 1
+      def configure(&block)
+        instance_eval(&block) if block
       end
 
       def after_configuration
+        environment.kubernetes.add_plugin(:redis) do
+          instance :sidekiq
+        end
+
         return unless rails_app
 
         deployment.spec.template.spec.container(:worker).merge!(
@@ -26,7 +31,7 @@ module Kuby
       end
 
       def before_deploy(manifest)
-        image_with_tag = "#{docker.metadata.image_url}:#{kubernetes.tag}"
+        image_with_tag = "#{docker.image.image_url}:#{kubernetes.tag || Kuby::Docker::LATEST_TAG}"
 
         deployment do
           spec do
@@ -44,8 +49,7 @@ module Kuby
       def resources
         @resources ||= [
           service_account,
-          deployment,
-          redis
+          deployment
         ]
       end
 
@@ -131,40 +135,8 @@ module Kuby
         @deployment
       end
 
-      def redis(&block)
-        context = self
-
-        @redis ||= Kuby::KubeDB.redis do
-          api_version 'kubedb.com/v1alpha1'
-
-          metadata do
-            name "#{context.selector_app}-sidekiq-redis"
-            namespace context.kubernetes.namespace.metadata.name
-          end
-
-          spec do
-            version '5.0.3-v1'
-            storage_type 'Durable'
-
-            storage do
-              storage_class_name context.storage_class_name
-              access_modes ['ReadWriteOnce']
-
-              resources do
-                requests do
-                  add :storage, '1Gi'
-                end
-              end
-            end
-          end
-        end
-
-        @redis.instance_eval(&block) if block
-        @redis
-      end
-
-      def storage_class_name
-        kubernetes.provider.storage_class_name
+      def redis_instance
+        kubernetes.plugin(:redis).instance(:sidekiq)
       end
 
       def kubernetes
