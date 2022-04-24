@@ -34,6 +34,10 @@ module Kuby
         deployment.spec.template.spec.container(:worker).merge!(
           rails_app.deployment.spec.template.spec.container(:web), fields: [:env_from]
         )
+
+        if rails_app.manage_database? && database = Kuby::Plugins::RailsApp::Database.get(rails_app)
+          database.plugin.configure_pod_spec(deployment.spec.template.spec)
+        end
       end
 
       def before_deploy(manifest)
