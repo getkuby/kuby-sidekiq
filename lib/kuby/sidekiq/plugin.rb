@@ -10,12 +10,8 @@ module Kuby
 
       value_field :replicas, default: 1
 
-      # https://github.com/spotahome/redis-operator#connection-to-the-created-redis-failovers
       def connection_params
-        {
-          sentinels: [{ host: redis_instance.service_name, port: redis_instance.service_port }],
-          url: 'redis://mymaster'
-        }
+        redis_instance.connection_params
       end
 
       def configure(&block)
