@@ -6,7 +6,7 @@ Sidekiq plugin for [Kuby](https://github.com/getkuby/kuby-core).
 
 ## Intro
 
-The Sidekiq plugin that makes it easy to run a deployment of Sidekiq workers for your Rails app. Behind the scenes it uses [kuby-redis](https://github.com/getkuby/kuby-redis) to stand up an instance of Redis and Kubernetes deployments to start the desired number of workers.
+The Sidekiq plugin makes it easy to run a deployment of Sidekiq workers for your Rails app. Behind the scenes it uses [kuby-redis](https://github.com/getkuby/kuby-redis) to stand up an instance of Redis and Kubernetes deployments to start the desired number of workers.
 
 ## Configuration
 
