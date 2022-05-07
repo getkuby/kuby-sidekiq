@@ -1,3 +1,6 @@
+## 0.4.0
+* Use kuby-redis v0.2, which uses the Spotahome Redis operator instead of KubeDB.
+
 ## 0.3.0
 * Conform to new plugin architecture.
 * Accept `environment` instead of `definition` instances.

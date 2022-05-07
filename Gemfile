@@ -6,6 +6,7 @@ gem 'kuby-core', path: '../kuby-core'
 gem 'sidekiq', '>= 6'
 
 group :development, :test do
+  gem 'sorbet-runtime'
   gem 'pry-byebug'
   gem 'rake'
 end
