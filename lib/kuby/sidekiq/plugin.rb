@@ -9,7 +9,9 @@ module Kuby
 
       ROLE = 'worker'.freeze
 
-      attr_accessor :processes
+      def processes
+        @processes ||= []
+      end
 
       value_field :replicas, default: 1
 
