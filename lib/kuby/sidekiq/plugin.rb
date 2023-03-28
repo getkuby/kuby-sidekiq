@@ -9,11 +9,11 @@ module Kuby
 
       ROLE = 'worker'.freeze
 
+      value_field :replicas, default: 1
+
       def processes
         @processes ||= []
       end
-
-      value_field :replicas, default: 1
 
       def connection_params
         redis_instance.connection_params
@@ -93,9 +93,6 @@ module Kuby
           process.instance_eval(&block) if block
           processes << process
         end
-
-        process.instance_eval(&block) if block
-        self.processes << process
       end
 
       def redis_instance
