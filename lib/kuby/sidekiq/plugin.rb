@@ -88,7 +88,10 @@ module Kuby
 
       def process(name, &block)
         self.processes ||= []
-        process = SidekiqProcess.new(name: name, plugin: self, default_replicas: replicas)
+        SidekiqProcess.new(name: name, plugin: self, default_replicas: replicas).tap do |process|
+          process.instance_eval(&block) if block
+          processes << process
+        end
 
         process.instance_eval(&block) if block
         self.processes << process
