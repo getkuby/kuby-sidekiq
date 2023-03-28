@@ -24,8 +24,8 @@ module Kuby
       end
 
       def after_configuration
-        if processes.nil? || processes.empty?
-          self.processes = [SidekiqProcess.new(plugin: self, default_replicas: replicas)]
+        if processes.empty?
+          processes << SidekiqProcess.new(plugin: self, default_replicas: replicas)
         end
 
         environment.kubernetes.add_plugin(:redis) do
