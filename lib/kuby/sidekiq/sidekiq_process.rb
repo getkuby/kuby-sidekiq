@@ -2,7 +2,7 @@ require 'securerandom'
 
 module Kuby
   module Sidekiq
-    # This class creates a deployment for a Sikekiq Process. A process is a single instance
+    # This class creates a deployment for a Sidekiq Process. A process is a single instance
     # of Sidekiq. Each instance can be provided command line options to specify concurrency,
     # config files or queues.
     # https://github.com/sidekiq/sidekiq/wiki/Best-Practices#4-use-precise-terminology
