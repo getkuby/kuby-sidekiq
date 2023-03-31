@@ -1,3 +1,6 @@
+## 0.5.0
+* Support for multiple configurable Sidekiq processes (#2, @zhall0624)
+
 ## 0.4.0
 * Use kuby-redis v0.2, which uses the Spotahome Redis operator instead of KubeDB.
 
