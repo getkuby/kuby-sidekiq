@@ -1,5 +1,6 @@
 require 'securerandom'
 require 'kuby/redis'
+require_relative 'sidekiq_process'
 
 module Kuby
   module Sidekiq
@@ -10,6 +11,10 @@ module Kuby
 
       value_field :replicas, default: 1
 
+      def processes
+        @processes ||= []
+      end
+
       def connection_params
         redis_instance.connection_params
       end
@@ -19,6 +24,10 @@ module Kuby
       end
 
       def after_configuration
+        if processes.empty?
+          processes << SidekiqProcess.new(plugin: self, default_replicas: replicas)
+        end
+
         environment.kubernetes.add_plugin(:redis) do
           instance :sidekiq do
             custom_config (custom_config || []).concat(['maxmemory-policy noeviction'])
@@ -27,24 +36,28 @@ module Kuby
 
         return unless rails_app
 
-        deployment.spec.template.spec.container(:worker).merge!(
-          rails_app.deployment.spec.template.spec.container(:web), fields: [:env_from]
-        )
+        processes.each do |process|
+          process.deployment.spec.template.spec.container(:worker).merge!(
+            rails_app.deployment.spec.template.spec.container(:web), fields: [:env_from]
+          )
 
-        if rails_app.manage_database? && database = Kuby::Plugins::RailsApp::Database.get(rails_app)
-          database.plugin.configure_pod_spec(deployment.spec.template.spec)
+          if rails_app.manage_database? && database = Kuby::Plugins::RailsApp::Database.get(rails_app)
+            database.plugin.configure_pod_spec(process.deployment.spec.template.spec)
+          end
         end
       end
 
       def before_deploy(manifest)
         image_with_tag = "#{docker.image.image_url}:#{kubernetes.tag || Kuby::Docker::LATEST_TAG}"
 
-        deployment do
-          spec do
-            template do
-              spec do
-                container(:worker) do
-                  image image_with_tag
+        processes.each do |process|
+          process.deployment do
+            spec do
+              template do
+                spec do
+                  container(:worker) do
+                    image image_with_tag
+                  end
                 end
               end
             end
@@ -53,10 +66,7 @@ module Kuby
       end
 
       def resources
-        @resources ||= [
-          service_account,
-          deployment
-        ]
+        @resources ||= [service_account, *processes.map(&:deployment)]
       end
 
       def service_account(&block)
@@ -78,67 +88,11 @@ module Kuby
         @service_account
       end
 
-      def deployment(&block)
-        context = self
-
-        @deployment ||= KubeDSL.deployment do
-          metadata do
-            name "#{context.selector_app}-sidekiq-#{ROLE}"
-            namespace context.namespace.metadata.name
-
-            labels do
-              add :app, context.selector_app
-              add :role, ROLE
-            end
-          end
-
-          spec do
-            replicas context.replicas
-
-            selector do
-              match_labels do
-                add :app, context.selector_app
-                add :role, ROLE
-              end
-            end
-
-            strategy do
-              type 'RollingUpdate'
-
-              rolling_update do
-                max_surge '25%'
-                max_unavailable 0
-              end
-            end
-
-            template do
-              metadata do
-                labels do
-                  add :app, context.selector_app
-                  add :role, ROLE
-                end
-              end
-
-              spec do
-                container(:worker) do
-                  name "#{context.selector_app}-sidekiq-#{ROLE}"
-                  image_pull_policy 'IfNotPresent'
-                  command %w(bundle exec sidekiq)
-                end
-
-                image_pull_secret do
-                  name context.kubernetes.registry_secret.metadata.name
-                end
-
-                restart_policy 'Always'
-                service_account_name context.service_account.metadata.name
-              end
-            end
-          end
+      def process(name, &block)
+        SidekiqProcess.new(name: name, plugin: self, default_replicas: replicas).tap do |process|
+          process.instance_eval(&block) if block
+          processes << process
         end
-
-        @deployment.instance_eval(&block) if block
-        @deployment
       end
 
       def redis_instance

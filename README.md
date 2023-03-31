@@ -66,6 +66,37 @@ bundle exec kuby -e production push
 bundle exec kuby -e production deploy
 ```
 
+## Advanced Configuration
+
+If you have a more complex setup for Sidekiq you can specify the processes you need to create. The options method allow you to
+provide command line arguments to Sidekiq in order to either specify a non-default `sidekiq.yml` file or queues for a process to
+run. The process name is required.
+
+```ruby
+require 'kuby/sidekiq'
+
+Kuby.define(:production) do
+  kubernetes do
+
+    add_plugin(:sidekiq) do
+      replicas 2  # sets the default number of replicas for each process
+
+
+      process('default') # sidekiq uses sidekiq.yml by default and has 2 replicas
+
+      process('slow_process') do
+        options ['-C', 'config/slow_sidekiq.yml']
+        replicas 4 # override default number of replicas
+      end
+
+      process('queue_processor') do
+        options ['-q', 'critical', '-q', 'less_critical']
+      end
+    end
+  end
+end
+```
+
 ## License
 
 Licensed under the MIT license. See LICENSE for details.
