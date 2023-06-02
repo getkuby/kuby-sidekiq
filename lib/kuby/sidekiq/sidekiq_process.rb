@@ -67,7 +67,8 @@ module Kuby
                 container(:worker) do
                   name "#{context.plugin.selector_app}-sidekiq-#{ROLE}-#{context.name}"
                   image_pull_policy 'IfNotPresent'
-                  command ['bundle', 'exec', 'sidekiq', *context.options]
+                  command ['bundle', 'exec', 'sidekiq']
+                  args context.options
                 end
 
                 image_pull_secret do
